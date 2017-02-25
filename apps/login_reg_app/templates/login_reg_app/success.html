@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>Login and Registration</title>
+	</head>
+	<body>
+		<h1>Success Page</h1>
+		<form class="return" action="/" method="get">
+			{% csrf_token %}
+			<input type="submit" name="return" value="Log Out">
+		</form>
+	</body>
+</html>
