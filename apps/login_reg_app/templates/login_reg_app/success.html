@@ -6,6 +6,14 @@
 	</head>
 	<body>
 		<h1>Success Page</h1>
+		{% for info in userInfo %}
+			<h2>Success! Welcome, {{info.first_name}}</h2>
+		{% endfor %}
+		{% if messages %}
+			{% for message in messages %}
+				<p class="errors">{{message}}</p>
+			{% endfor %}
+		{% endif %}
 		<form class="return" action="/" method="get">
 			{% csrf_token %}
 			<input type="submit" name="return" value="Log Out">

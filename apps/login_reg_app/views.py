@@ -11,8 +11,9 @@ def index(request):
 	return render(request, 'login_reg_app/index.html')
 
 def process(request):
+	postType = request.POST
 	if request.method == 'POST':
-		if request.POST['register']:
+		if request.POST['submit'] == 'Register':
 			# Get registration information
 			first_name = request.POST['first_name']
 			last_name = request.POST['last_name']
@@ -50,26 +51,40 @@ def process(request):
 				# Adding new user to Db
 				userAdd = User.objects.create(first_name=first_name, last_name=last_name, email=email, password=pwHashSalt)
 
+				# Get user info and redirect to success page
 				newUserGet = User.objects.filter(email=email)
 				for user in newUserGet:
-					print str(newUserGet['id'])
-					idNew = str(newUserGet['id'])
+					idNew = str(user.id)
+				messages.success(request, 'Successfully logged in!')
 				return redirect('/process/login/'+ idNew)
-		elif request.POST['login']:
+		elif request.POST['submit'] == 'Login':
 			# Get entered login information
 			email = request.POST['email']
 			password = request.POST['password']
 
 			# Query Db for user based on entered email
 			findUser = User.objects.filter(email = email)
+			for user in findUser:
+				pwUser = user.password
+				idLogin = str(user.id)
+			print pwUser
 
 			# If verify user exists in Db. If yes, send to success page. if no tell user to register
 			if findUser:
-				if bcrypt.check_password_hash(findUser['password'], password):
-					return render(request, 'login_reg_app/success.html')
+				password = password.encode()
+				pwUser = pwUser.encode()
+				if bcrypt.hashpw(password, pwUser) == pwUser:
+					messages.success(request, 'Successfully logged in!')
+					return redirect('/process/login/'+ idLogin)
 			else:
 				messages.error(request, 'User not found. Please Register above.')
 				return redirect('/')
 
 def success(request, id):
-	return render(request, 'login_reg_app/success.html')
+
+	getUserInfo = User.objects.filter(id=id)
+
+	userContext = {
+		'userInfo': getUserInfo
+	}
+	return render(request, 'login_reg_app/success.html', userContext)
