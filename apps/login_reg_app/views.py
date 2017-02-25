@@ -64,18 +64,21 @@ def process(request):
 
 			# Query Db for user based on entered email
 			findUser = User.objects.filter(email = email)
-			for user in findUser:
-				pwUser = user.password
-				idLogin = str(user.id)
-			print pwUser
 
 			# If verify user exists in Db. If yes, send to success page. if no tell user to register
 			if findUser:
+				for user in findUser:
+					pwUser = user.password
+					idLogin = str(user.id)
+				print pwUser
 				password = password.encode()
 				pwUser = pwUser.encode()
 				if bcrypt.hashpw(password, pwUser) == pwUser:
 					messages.success(request, 'Successfully logged in!')
 					return redirect('/process/login/'+ idLogin)
+				else:
+					messages.error(request, 'Invalid username and/or password.')
+					return redirect('/')
 			else:
 				messages.error(request, 'User not found. Please Register above.')
 				return redirect('/')
