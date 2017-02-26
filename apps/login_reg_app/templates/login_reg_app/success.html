@@ -15,7 +15,7 @@
 				<p class="errors">{{message}}</p>
 			{% endfor %}
 		{% endif %}
-		<form class="return" action="/" method="get">
+		<form class="return" action="{% url 'login_reg:login_reg_index' %}" method="get">
 			{% csrf_token %}
 			<input type="submit" name="return" value="Log Out">
 		</form>

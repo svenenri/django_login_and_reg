@@ -1,10 +1,7 @@
 from django.shortcuts import render, redirect, HttpResponse
+from django.core.urlresolvers import reverse
 from django.contrib import messages
 from .models import User
-import bcrypt
-import re
-
-emailValidate = re.compile(r'^[a-zA-Z0-9.+_-]+@[a-zA-Z0-9._-]+\.[a-zA-Z]+$')
 
 # Project Views
 def index(request):
@@ -18,74 +15,74 @@ def process(request):
 			first_name = request.POST['first_name']
 			last_name = request.POST['last_name']
 			email = request.POST['email']
-			password = request.POST['password']
-			pwConfirm = request.POST['pwConfirm']
 
-			# Validity checks
-			# Checking that length of first_name and last_name is 2 char or more
-			if len(first_name) < 2 or len(last_name) < 2:
-				messages.error(request, 'First name and last name must be at least 2 characters in length.')
-				return redirect('/')
+			validateInfo = {
+				'first_name': first_name,
+				'last_name': last_name,
+				'email': email
+			}
 
-			# Checking that email fits valid email format
-			if len(email) < 1 or not emailValidate.match(email):
-				messages.error(request, 'Your email is not valid!')
-				return redirect('/')
-
-			# Checking that password and pwConfirm match and that password is at least 8 characters
-			if len(password) < 8:
-				messages.error(request, 'Your password must be at least 8 characters')
-			if password != pwConfirm:
-				messages.error(request, 'Your password and Confirm Password must match')
-				return redirect('/')
-			# Encrypt PW using bcrypt and check validity
-			password = password.encode()
-			pwHashSalt = bcrypt.hashpw(password, bcrypt.gensalt())
+			# Checking validity of the user-entered info.
+			checkInfo = User.userManager.validate(validateInfo)
+			if checkInfo:
+				for idx in range(len(checkInfo)):
+					messages.error(request, checkInfo[idx])
+				return redirect(reverse('login_reg:login_reg_index'))
 
 			#Verify that user is not already in the Db
-			userCheck = User.objects.filter(email=email)
+			userCheck = User.userManager.getUserByEmail(email)
 			if userCheck:
 				messages.error(request, 'This email is already in the database. Please register with a different email.')
-				return redirect('/')
+				return redirect(reverse('login_reg:login_reg_index'))
 			else:
-				# Adding new user to Db
-				userAdd = User.objects.create(first_name=first_name, last_name=last_name, email=email, password=pwHashSalt)
+				# Check the length of the entered password and that password and confirm password match. If both are true then secure the password using bcrypt.
+				pwCheck = User.userManager.pwSecure(request.POST['password'], request.POST['pwConfirm'])
+				if pwCheck[0] == True:
+					# Adding new user to Db
+					userAdd = User.userManager.addUser(validateInfo, pwCheck[1])
 
-				# Get user info and redirect to success page
-				newUserGet = User.objects.filter(email=email)
-				for user in newUserGet:
-					idNew = str(user.id)
-				messages.success(request, 'Successfully logged in!')
-				return redirect('/process/login/'+ idNew)
+					# Get user info and redirect to success page
+					newUserGet = User.userManager.getUserByEmail(email)
+					for user in newUserGet:
+						idNew = str(user.id)
+					messages.success(request, 'Successfully logged in!')
+					return redirect('/process/login/'+ idNew)
+				else:
+					for idx in range(len(pwCheck[1])):
+						messages.error(request, pwCheck[1][idx])
+					return redirect(reverse('login_reg:login_reg_index'))
+
 		elif request.POST['submit'] == 'Login':
 			# Get entered login information
 			email = request.POST['email']
 			password = request.POST['password']
 
 			# Query Db for user based on entered email
-			findUser = User.objects.filter(email = email)
+			findUser = User.userManager.getUserByEmail(email)
 
 			# If verify user exists in Db. If yes, send to success page. if no tell user to register
 			if findUser:
 				for user in findUser:
 					pwUser = user.password
 					idLogin = str(user.id)
-				print pwUser
-				password = password.encode()
-				pwUser = pwUser.encode()
-				if bcrypt.hashpw(password, pwUser) == pwUser:
-					messages.success(request, 'Successfully logged in!')
+
+				# Verify that pw matches what's in the Db
+				confirmPW = User.userManager.pwVerifyLogin(password, pwUser)
+
+				if confirmPW[0] == True:
+					messages.success(request, confirmPW[1])
 					return redirect('/process/login/'+ idLogin)
 				else:
-					messages.error(request, 'Invalid username and/or password.')
-					return redirect('/')
+					messages.error(request, confirmPW[1])
+					return redirect(reverse('login_reg:login_reg_index'))
 			else:
 				messages.error(request, 'User not found. Please Register above.')
-				return redirect('/')
+				return redirect(reverse('login_reg:login_reg_index'))
 
 def success(request, id):
 
-	getUserInfo = User.objects.filter(id=id)
+	userID = id
+	getUserInfo = User.userManager.getUserByID(userID)
 
 	userContext = {
 		'userInfo': getUserInfo
