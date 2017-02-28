@@ -76,7 +76,7 @@ class ManageUser(models.Manager):
 		password = password.encode()
 		pwConfirm = pwConfirm.encode()
 
-		if bcrypt.hashpw(password, pwUser) == pwConfirm:
+		if bcrypt.hashpw(password, pwConfirm) == pwConfirm:
 			verifyMsg = 'Successfully logged in!'
 			verified = (True, verifyMsg)
 			return verified
